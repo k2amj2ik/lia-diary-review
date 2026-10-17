@@ -42,6 +42,8 @@ img{max-width:100%}
 #lock input{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}
 .err{color:var(--err);font-size:.85rem;min-height:1.2em}
 .stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.dl{display:block;margin:12px 0 4px;padding:12px 14px;background:var(--plum-soft);border:1px solid var(--line);border-radius:10px;color:var(--plum);font-weight:700;text-decoration:none;line-height:1.45}
+.dl small{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
 .stat{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.85rem;font-variant-numeric:tabular-nums}
 .stat b{color:var(--plum)}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
@@ -125,10 +127,11 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
   </form>
 
   <div id="home" hidden>
-    <span class="bar">2002 유럽 배낭여행 · 1부 「그때 그 ○○」</span>
+    <span class="bar">2002 유럽 배낭여행 · 1부 「그때 그 ○○」 · 2부 「25년 전 오늘」</span>
     <h1 style="margin-top:10px">Lia의 그림일기 검수</h1>
     <p class="sub">@lia.diary.99 · 카드를 넘겨 보며 장마다 코멘트를 남기고, 회차마다 2026 한마디를 써 주세요.</p>
     <div id="notice" class="notice" hidden></div>
+    <a id="formDl" class="dl" href="#">✍️ 손글씨 양식 PDF 내려받기 <small>(A4 9쪽 · 앞 3쪽만 써도 카드 글자의 93%)</small></a>
     <div class="stats" id="stats"></div>
     <div class="chips" role="group" aria-label="보기">
       <button class="chip" data-f="all" aria-pressed="true">전체</button>
@@ -189,7 +192,7 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
 </div>
 
 <script>
-const CFG = { salt: "LNXhsNOqx1+oMWKvJHJucw==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017234525" };
+const CFG = { salt: "LNXhsNOqx1+oMWKvJHJucw==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261018001151" };
 (function(){
   const $ = s => document.querySelector(s);
   const PWKEY = "lia_review_pw";
@@ -230,6 +233,19 @@ const CFG = { salt: "LNXhsNOqx1+oMWKvJHJucw==", iter: 600000, api: "https://lia-
   (async () => { const saved = await store.get(PWKEY); if (!saved) return; try { await unlock(saved); store.set(PWKEY, saved); start(); } catch (_) { store.del(PWKEY); } })();
 
   function start(){ $("#lock").hidden = true; route(); load(); }
+
+  // ---------- 손글씨 양식 PDF (암호화된 파일을 풀어 내려받기 — 비밀번호 없이는 못 받음) ----------
+  $("#formDl").addEventListener("click", async e => {
+    e.preventDefault(); const a = e.currentTarget, old = a.firstChild.textContent;
+    a.firstChild.textContent = "⏳ 준비 중… ";
+    try {
+      const buf = await decryptBuf(await (await fetch("e/form.bin?v=" + CFG.ver)).arrayBuffer());
+      const url = URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
+      const t = document.createElement("a"); t.href = url; t.download = "리아_손글씨양식.pdf";
+      document.body.appendChild(t); t.click(); t.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (_) { showNotice("양식을 받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요."); }
+    a.firstChild.textContent = old;
+  });
 
   // ---------- 저장소 (Cloudflare Worker) ----------
   async function api(path, body){
