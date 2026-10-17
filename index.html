@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Lia의 그림일기 검수</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<style>
+/* 레이아웃: 휴대폰 한 줄 목록 → 회차를 누르면 카드 넘겨보기 + 장별 코멘트. 원본 그림일기의 분홍 종이와 자주색 제목 띠에서 색을 가져옴 */
+:root{
+  --paper:#f6e3e5; --sheet:#fffafa; --ink:#2b2226; --muted:#7d6a70;
+  --plum:#8c285a; --plum-soft:#f3dbe8; --line:#e6c9d0; --done:#2f7d5b; --done-soft:#dcefe5; --err:#b3261e;
+  --display:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --paper:#1f181b; --sheet:#2a2125; --ink:#f3e9ec; --muted:#b9a5ac;
+  --plum:#e48ab6; --plum-soft:#43283a; --line:#4a3840; --done:#7fd1a8; --done-soft:#1f3a2e; --err:#ff8a80; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+h1,h2{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:1.45rem}
+img{max-width:100%}
+[hidden]{display:none!important}
+.sub{color:var(--muted);font-size:.85rem}
+.bar{display:inline-block;border:2px solid var(--plum);background:var(--plum-soft);box-shadow:3px 3px 0 var(--plum);padding:2px 10px;font-size:.85rem}
+/* 잠금 화면 */
+#lock{max-width:340px;margin:18vh auto 0;background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:24px 20px;display:flex;flex-direction:column;gap:10px}
+#lock input{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}
+.err{color:var(--err);font-size:.85rem;min-height:1.2em}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.85rem;font-variant-numeric:tabular-nums}
+.stat b{color:var(--plum)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.chip{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:99px;padding:5px 12px;font:inherit;font-size:.85rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--plum);border-color:var(--plum);color:var(--sheet)}
+.notice{background:var(--plum-soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.85rem;margin-bottom:12px}
+.list{display:flex;flex-direction:column;gap:10px}
+.ep{display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:center;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:left;color:inherit;font:inherit;cursor:pointer;width:100%}
+.ep .th{width:84px;aspect-ratio:3/4;border-radius:6px;background:var(--plum-soft);overflow:hidden}
+.ep .th img{width:100%;height:100%;object-fit:cover;display:block}
+.ep .meta{min-width:0;display:flex;flex-direction:column;gap:3px}
+.ep .when{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ep .t{font-family:var(--display);font-size:1.05rem;line-height:1.35}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:.75rem;border-radius:99px;padding:1px 8px;background:var(--plum-soft);color:var(--plum)}
+.badge.ok{background:var(--done-soft);color:var(--done)}
+.badge.dim{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.detail-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);display:flex;align-items:center;gap:8px;padding-block:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.back{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+.detail-top .t{min-width:0;flex:1;font-family:var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{display:flex;gap:6px}
+.nav button{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:8px;width:36px;height:34px;font:inherit;cursor:pointer}
+.nav button:disabled{opacity:.35;cursor:default}
+.carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;border-radius:10px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:center;position:relative;aspect-ratio:3/4;background:var(--sheet);border-radius:10px;overflow:hidden}
+.slide img{width:100%;height:100%;object-fit:contain;display:block}
+.slide .cnt{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.75rem;border-radius:99px;padding:1px 8px}
+.slide .ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 2px}
+.dots{display:flex;gap:5px;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);border:0;padding:0;cursor:pointer}
+.dot[aria-current="true"]{background:var(--plum)}
+.dot.has{outline:2px solid var(--plum);outline-offset:1px}
+.slabel{font-size:.85rem;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+section.box{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+section.box h2{font-size:1.05rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+textarea{width:100%;min-height:84px;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--paper);color:var(--ink);font:inherit;resize:vertical}
+textarea:focus,input:focus,button:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.btn{border:0;background:var(--plum);color:var(--sheet);border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--plum);border:1px solid var(--plum)}
+.btn:disabled{opacity:.45;cursor:default}
+.hint{font-size:.8rem;color:var(--muted)}
+.ex{font-size:.85rem;color:var(--muted);background:var(--paper);border-radius:8px;padding:8px 10px;white-space:pre-wrap}
+.comments{display:flex;flex-direction:column;gap:8px}
+.cm{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.cm.done{opacity:.7}
+.cm .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.cm .info{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.75rem;color:var(--muted)}
+.cm .info button{border:0;background:none;color:var(--plum);font:inherit;font-size:.75rem;cursor:pointer;padding:2px 4px}
+.toggle{display:flex;gap:6px}
+pre.cap{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font:inherit;font-size:.9rem}
+details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
+</style></head><body>
+<div class="wrap">
+  <form id="lock">
+    <span class="bar">Lia의 그림일기</span>
+    <h1>검수 페이지</h1>
+    <p class="sub">비밀번호를 넣으면 이 휴대폰에서는 다음부터 바로 열려요.</p>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="비밀번호" aria-label="비밀번호">
+    <button class="btn" id="go" type="submit">열기</button>
+    <div class="err" id="err"></div>
+  </form>
+
+  <div id="home" hidden>
+    <span class="bar">2002 유럽 배낭여행 · 1부 「그때 그 ○○」</span>
+    <h1 style="margin-top:10px">Lia의 그림일기 검수</h1>
+    <p class="sub">@lia.diary.99 · 카드를 넘겨 보며 장마다 코멘트를 남기고, 회차마다 2026 한마디를 써 주세요.</p>
+    <div id="notice" class="notice" hidden></div>
+    <div class="stats" id="stats"></div>
+    <div class="chips" role="group" aria-label="보기">
+      <button class="chip" data-f="all" aria-pressed="true">전체</button>
+      <button class="chip" data-f="open" aria-pressed="false">코멘트 남은 회차</button>
+      <button class="chip" data-f="nonote" aria-pressed="false">한마디 안 쓴 회차</button>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div id="detail" hidden>
+    <div class="detail-top">
+      <button class="back" id="back">← 목록</button>
+      <div class="t" id="dTitle"></div>
+      <div class="nav"><button id="prevEp" aria-label="이전 회차">‹</button><button id="nextEp" aria-label="다음 회차">›</button></div>
+    </div>
+    <div class="carousel" id="carousel" aria-label="카드 넘겨보기"></div>
+    <div class="pager"><span class="slabel" id="slabel"></span><div class="dots" id="dots"></div></div>
+
+    <section class="box">
+      <h2><span id="cHead">이 장 코멘트</span>
+        <span class="toggle"><button class="chip" id="tSlide" aria-pressed="true">이 장</button><button class="chip" id="tAll" aria-pressed="false">회차 전체</button></span></h2>
+      <div class="comments" id="comments"></div>
+      <label class="hint" for="cInput" id="cLabel">지금 보는 장에 코멘트 남기기</label>
+      <textarea id="cInput" placeholder="예) 그림이 너무 작아요 / 이 문장 빼 주세요"></textarea>
+      <div class="row"><span class="hint" id="cMsg"></span><button class="btn" id="cSend">코멘트 등록</button></div>
+    </section>
+
+    <section class="box" id="nBox">
+      <h2>(주 2026) 한마디 <span class="hint" id="nState"></span></h2>
+      <div class="ex" id="nEx"></div>
+      <textarea id="nInput" placeholder="내 문장을 써 주세요. 예시가 마음에 들면 '예시 그대로'라고만 써도 돼요."></textarea>
+      <div class="row"><button class="btn ghost" id="nUseEx">예시 가져오기</button><button class="btn" id="nSave">한마디 저장</button></div>
+    </section>
+
+    <section class="box">
+      <details>
+        <summary>인스타 캡션</summary>
+        <pre class="cap" id="cap"></pre>
+        <div class="row" style="margin-top:8px"><span class="hint" id="capMsg">(주 2026) 줄은 한마디가 반영되면 바뀝니다.</span><button class="btn ghost" id="capCopy">캡션 복사</button></div>
+      </details>
+    </section>
+  </div>
+</div>
+
+<script>
+const CFG = { salt: "6mze+pddhLNDSTDhlyTduA==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017102931" };
+(function(){
+  const $ = s => document.querySelector(s);
+  const PWKEY = "lia_review_pw";
+  const st = { eps: [], cur: null, slide: 0, scope: "slide", filter: "all", comments: [], notes: {}, key: null, apiKey: "", imgs: {} };
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const fmtDate = iso => { if(!iso) return ""; const d = new Date(iso + "T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`; };
+  const fmtTime = iso => { if(!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+  const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }, del(k){ try { localStorage.removeItem(k); } catch(e){} } };
+
+  // ---------- 잠금 해제 ----------
+  async function deriveKey(pw){
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(CFG.salt), iterations: CFG.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+  async function decryptBuf(buf){ const u = new Uint8Array(buf); return crypto.subtle.decrypt({ name: "AES-GCM", iv: u.slice(0, 12) }, st.key, u.slice(12)); }
+  async function unlock(pw){
+    st.key = await deriveKey(pw);
+    const res = await fetch("data.bin?v=" + CFG.ver);
+    const plain = await decryptBuf(await res.arrayBuffer());   // 비밀번호가 틀리면 여기서 실패
+    st.eps = JSON.parse(new TextDecoder().decode(plain));
+    const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("lia-review:" + pw));
+    st.apiKey = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  $("#lock").addEventListener("submit", async e => {
+    e.preventDefault(); const pw = $("#pw").value; if (!pw) return;
+    $("#go").disabled = true; $("#go").textContent = "여는 중…"; $("#err").textContent = "";
+    try { await unlock(pw); store.set(PWKEY, pw); start(); }
+    catch (_) { $("#err").textContent = "비밀번호가 맞지 않아요."; }
+    $("#go").disabled = false; $("#go").textContent = "열기";
+  });
+  (async () => { const saved = store.get(PWKEY); if (!saved) return; try { await unlock(saved); start(); } catch (_) { store.del(PWKEY); } })();
+
+  function start(){ $("#lock").hidden = true; route(); load(); }
+
+  // ---------- 저장소 (Cloudflare Worker) ----------
+  async function api(path, body){
+    const r = await fetch(CFG.api + path, body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Key": st.apiKey }, body: JSON.stringify(body) } : { headers: { "X-Key": st.apiKey } });
+    const j = await r.json().catch(() => ({ ok: false }));
+    if (!j.ok) throw new Error(j.error || ("HTTP " + r.status));
+    return j;
+  }
+  async function load(){
+    try { const j = await api("/all"); st.comments = j.comments; st.notes = {}; j.notes.forEach(n => st.notes[n.ep] = n); $("#notice").hidden = true; }
+    catch (e) { showNotice("코멘트 저장소에 연결하지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."); }
+    render(); if (st.cur) loadNote();
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && st.apiKey) load(); });
+  function showNotice(t){ const n = $("#notice"); n.textContent = t; n.hidden = false; }
+
+  // ---------- 이미지 (암호화된 파일을 받아 풀기) ----------
+  function imgURL(path){
+    if (!st.imgs[path]) st.imgs[path] = fetch(path + "?v=" + CFG.ver).then(r => r.arrayBuffer()).then(decryptBuf).then(b => URL.createObjectURL(new Blob([b], { type: "image/jpeg" })));
+    return st.imgs[path];
+  }
+  function fill(img, path){ imgURL(path).then(u => { img.src = u; const ld = img.parentElement.querySelector(".ld"); if (ld) ld.remove(); }).catch(() => {}); }
+
+  // ---------- 라우팅 (#ep03) ----------
+  window.addEventListener("hashchange", route);
+  function route(){
+    if (!st.eps.length) return;
+    const m = location.hash.match(/^#(ep\d\d)$/);
+    const ep = m && st.eps.find(e => e.id === m[1]);
+    if (ep) { if (!st.cur || st.cur.id !== ep.id) { st.cur = ep; st.slide = 0; buildCarousel(); loadNote(); } $("#home").hidden = true; $("#detail").hidden = false; }
+    else { st.cur = null; $("#home").hidden = false; $("#detail").hidden = true; }
+    render(); window.scrollTo(0, 0);
+  }
+  $("#back").onclick = () => { location.hash = ""; };
+  $("#prevEp").onclick = () => step(-1); $("#nextEp").onclick = () => step(1);
+  function step(d){ const i = st.eps.indexOf(st.cur) + d; if (st.eps[i]) location.hash = st.eps[i].id; }
+
+  // ---------- 목록 ----------
+  document.querySelectorAll(".chip[data-f]").forEach(b => b.onclick = () => { st.filter = b.dataset.f; document.querySelectorAll(".chip[data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+  const openOf = id => st.comments.filter(c => c.ep === id && !c.done).length;
+  const noteDone = e => !e.hasNote || !!(st.notes[e.id] && (st.notes[e.id].text || "").trim());
+
+  function render(){
+    if (!st.eps.length) return;
+    const open = st.comments.filter(c => !c.done).length, done = st.comments.length - open;
+    const noteEps = st.eps.filter(e => e.hasNote), noted = noteEps.filter(noteDone).length;
+    const stats = $("#stats"); stats.innerHTML = "";
+    [[st.eps.length, "회차"], [open, "남은 코멘트"], [done, "반영 완료"], [`${noted}/${noteEps.length}`, "한마디 작성"]].forEach(([v, l]) => { const s = document.createElement("span"); s.className = "stat"; const b = document.createElement("b"); b.textContent = v; s.append(b, " " + l); stats.appendChild(s); });
+    const list = $("#list"); list.innerHTML = "";
+    st.eps.filter(e => st.filter === "all" || (st.filter === "open" && openOf(e.id) > 0) || (st.filter === "nonote" && !noteDone(e))).forEach(e => {
+      const b = document.createElement("button"); b.className = "ep"; b.onclick = () => location.hash = e.id;
+      b.innerHTML = `<span class="th"><img alt=""></span><div class="meta"><span class="when"></span><span class="t"></span><div class="badges"></div></div>`;
+      fill(b.querySelector("img"), e.slides[0].img);
+      b.querySelector(".when").textContent = `${e.no}화 · ${fmtDate(e.date)} · ${e.corner}`;
+      b.querySelector(".t").textContent = e.title;
+      const bd = b.querySelector(".badges"), o = openOf(e.id), all = st.comments.filter(c => c.ep === e.id).length;
+      const add = (t, cls) => { const s = document.createElement("span"); s.className = "badge " + (cls || ""); s.textContent = t; bd.appendChild(s); };
+      add(`카드 ${e.slides.length}장`, "dim");
+      if (o) add(`코멘트 ${o}`); else if (all) add("코멘트 모두 반영", "ok");
+      if (e.hasNote) noteDone(e) ? add("한마디 ✓", "ok") : add("한마디 미작성", "dim");
+      list.appendChild(b);
+    });
+    if (!list.children.length) list.innerHTML = `<p class="hint">조건에 맞는 회차가 없어요.</p>`;
+    if (st.cur) renderDetail();
+  }
+
+  // ---------- 상세 ----------
+  const car = $("#carousel");
+  function buildCarousel(){
+    const e = st.cur; $("#dTitle").textContent = `${e.no}화 · ${e.title}`;
+    car.innerHTML = ""; $("#dots").innerHTML = "";
+    e.slides.forEach((s, i) => {
+      const d = document.createElement("div"); d.className = "slide";
+      d.innerHTML = `<span class="ld">불러오는 중…</span><img alt=""><span class="cnt"></span>`;
+      const img = d.querySelector("img"); img.alt = `${i+1}장 ${s.label}`; fill(img, s.img);
+      d.querySelector(".cnt").textContent = `${i+1} / ${e.slides.length}`; car.appendChild(d);
+      const dot = document.createElement("button"); dot.className = "dot"; dot.setAttribute("aria-label", `${i+1}장`); dot.onclick = () => goSlide(i); $("#dots").appendChild(dot);
+    });
+    $("#cap").textContent = e.caption;
+    requestAnimationFrame(() => goSlide(0, true));
+  }
+  function goSlide(i, instant){ car.scrollTo({ left: i * (car.clientWidth + 10), behavior: instant ? "auto" : "smooth" }); st.slide = i; renderDetail(); }
+  let tm; car.addEventListener("scroll", () => { clearTimeout(tm); tm = setTimeout(() => { const i = Math.round(car.scrollLeft / (car.clientWidth + 10)); if (i !== st.slide) { st.slide = i; renderDetail(); } }, 80); });
+
+  function renderDetail(){
+    const e = st.cur; if (!e) return;
+    const n = st.slide, s = e.slides[n];
+    $("#slabel").textContent = `${n+1}장 · ${s ? (s.label || s.type) : ""}`;
+    document.querySelectorAll("#dots .dot").forEach((d, i) => { d.setAttribute("aria-current", i === n); d.classList.toggle("has", st.comments.some(c => c.ep === e.id && c.slide === i+1 && !c.done)); });
+    $("#prevEp").disabled = st.eps.indexOf(e) === 0; $("#nextEp").disabled = st.eps.indexOf(e) === st.eps.length - 1;
+    $("#cHead").textContent = st.scope === "slide" ? `${n+1}장 코멘트` : `${e.no}화 전체 코멘트`;
+    $("#cLabel").textContent = `지금 보는 ${n+1}장에 코멘트 남기기`;
+    const box = $("#comments"); box.innerHTML = "";
+    const cs = st.comments.filter(c => c.ep === e.id && (st.scope === "all" || c.slide === n+1)).sort((a, b) => (a.done - b.done) || (a.id - b.id));
+    if (!cs.length) box.innerHTML = `<p class="hint">${st.scope === "slide" ? "이 장에는 아직 코멘트가 없어요." : "이 회차에는 아직 코멘트가 없어요."}</p>`;
+    cs.forEach(c => {
+      const d = document.createElement("div"); d.className = "cm" + (c.done ? " done" : "");
+      d.innerHTML = `<div class="txt"></div><div class="info"><span class="badge"></span><span class="at"></span><span style="flex:1"></span></div>`;
+      d.querySelector(".txt").textContent = c.text;
+      const bd = d.querySelector(".badge"); bd.textContent = c.done ? "반영 완료" : `${c.slide}장`; if (c.done) bd.classList.add("ok");
+      d.querySelector(".at").textContent = fmtTime(c.created_at);
+      const info = d.querySelector(".info");
+      const tg = document.createElement("button"); tg.textContent = c.done ? "다시 열기" : "반영 완료로";
+      tg.onclick = async () => { try { await api("/c/done", { id: c.id, done: !c.done }); c.done = c.done ? 0 : 1; render(); } catch (err) { flash("#cMsg", "바꾸지 못했어요."); } };
+      const del = document.createElement("button"); del.textContent = "삭제";
+      del.onclick = async () => { if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = "한 번 더 누르면 삭제"; return; } try { await api("/c/delete", { id: c.id }); st.comments = st.comments.filter(x => x.id !== c.id); render(); } catch (err) { flash("#cMsg", "삭제하지 못했어요."); } };
+      info.append(tg, del); box.appendChild(d);
+    });
+    $("#nBox").hidden = !e.hasNote;
+    $("#nEx").textContent = e.noteExample ? "예시 : " + e.noteExample : "";
+    const nt = st.notes[e.id];
+    $("#nState").textContent = nt && (nt.text || "").trim() ? `저장됨 ${fmtTime(nt.updated_at)}` : "아직 안 씀";
+  }
+  $("#tSlide").onclick = () => { st.scope = "slide"; $("#tSlide").setAttribute("aria-pressed", true); $("#tAll").setAttribute("aria-pressed", false); renderDetail(); };
+  $("#tAll").onclick = () => { st.scope = "all"; $("#tAll").setAttribute("aria-pressed", true); $("#tSlide").setAttribute("aria-pressed", false); renderDetail(); };
+  function flash(sel, t){ $(sel).textContent = t; setTimeout(() => { if ($(sel).textContent === t) $(sel).textContent = ""; }, 3500); }
+
+  $("#cSend").onclick = async () => {
+    const t = $("#cInput").value.trim(); if (!t) return;
+    $("#cSend").disabled = true;
+    try { const j = await api("/c", { ep: st.cur.id, slide: st.slide + 1, text: t, reviewer: "미영" }); st.comments.push(j.comment); $("#cInput").value = ""; flash("#cMsg", "등록했어요."); render(); }
+    catch (err) { flash("#cMsg", "등록하지 못했어요. 잠시 뒤 다시 눌러 주세요."); }
+    $("#cSend").disabled = false;
+  };
+  function loadNote(){ if (!st.cur) return; const nt = st.notes[st.cur.id]; $("#nInput").value = nt && nt.text ? nt.text : ""; }
+  $("#nUseEx").onclick = () => { $("#nInput").value = st.cur.noteExample; $("#nInput").focus(); };
+  $("#nSave").onclick = async () => {
+    $("#nSave").disabled = true;
+    try { const t = $("#nInput").value.trim(); await api("/note", { ep: st.cur.id, text: t }); st.notes[st.cur.id] = { ep: st.cur.id, text: t, updated_at: new Date().toISOString() }; render(); $("#nState").textContent = "저장했어요"; }
+    catch (err) { $("#nState").textContent = "저장하지 못했어요"; }
+    $("#nSave").disabled = false;
+  };
+  $("#capCopy").onclick = () => { navigator.clipboard.writeText(st.cur.caption).then(() => flash("#capMsg", "복사했어요."), () => { const r = document.createRange(); r.selectNodeContents($("#cap")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); flash("#capMsg", "글자를 길게 눌러 복사해 주세요."); }); };
+})();
+</script>
+</body></html>
