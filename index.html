@@ -189,7 +189,7 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
 </div>
 
 <script>
-const CFG = { salt: "pUccLOKGAxmxOhekBc3mDw==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017221841" };
+const CFG = { salt: "LNXhsNOqx1+oMWKvJHJucw==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017234525" };
 (function(){
   const $ = s => document.querySelector(s);
   const PWKEY = "lia_review_pw";
@@ -258,7 +258,7 @@ const CFG = { salt: "pUccLOKGAxmxOhekBc3mDw==", iter: 600000, api: "https://lia-
   function route(){
     if (!st.eps.length) return;
     if (!lb.hidden) closeLb();
-    const m = location.hash.match(/^#(ep\d\d)$/);
+    const m = location.hash.match(/^#(ep\d{2,3})$/);
     const ep = m && st.eps.find(e => e.id === m[1]);
     if (ep) { if (!st.cur || st.cur.id !== ep.id) { st.cur = ep; st.slide = 0; buildCarousel(); loadNote(); } $("#home").hidden = true; $("#detail").hidden = false; }
     else { st.cur = null; $("#home").hidden = false; $("#detail").hidden = true; closeSheet(); }
@@ -286,7 +286,7 @@ const CFG = { salt: "pUccLOKGAxmxOhekBc3mDw==", iter: 600000, api: "https://lia-
       b.onclick = () => location.hash = e.id; b.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); location.hash = e.id; } };
       b.innerHTML = `<span class="th"><img alt=""></span><div class="meta"><span class="when"></span><span class="t"></span><div class="badges"></div></div>`;
       fill(b.querySelector("img"), e.slides[0].img);
-      b.querySelector(".when").textContent = `${e.no}화 · ${fmtDate(e.date)} · ${e.corner}`;
+      b.querySelector(".when").textContent = `${e.noLabel} · ${fmtDate(e.date)} · ${e.corner}`;
       b.querySelector(".t").textContent = e.title;
       const bd = b.querySelector(".badges"), o = openOf(e.id), all = st.comments.filter(c => c.ep === e.id).length;
       const add = (t, cls) => { const s = document.createElement("span"); s.className = "badge " + (cls || ""); s.textContent = t; bd.appendChild(s); };
@@ -302,7 +302,7 @@ const CFG = { salt: "pUccLOKGAxmxOhekBc3mDw==", iter: 600000, api: "https://lia-
   // ---------- 상세 ----------
   const car = $("#carousel");
   function buildCarousel(){
-    const e = st.cur; $("#dTitle").textContent = `${e.no}화 · ${e.title}`;
+    const e = st.cur; $("#dTitle").textContent = `${e.noLabel} · ${e.title}`;
     car.innerHTML = ""; $("#dots").innerHTML = "";
     e.slides.forEach((s, i) => {
       const d = document.createElement("div"); d.className = "slide";
@@ -323,8 +323,8 @@ const CFG = { salt: "pUccLOKGAxmxOhekBc3mDw==", iter: 600000, api: "https://lia-
     $("#slabel").textContent = `${n+1}장 · ${s ? (s.label || s.type) : ""}`;
     document.querySelectorAll("#dots .dot").forEach((d, i) => { d.setAttribute("aria-current", i === n); d.classList.toggle("has", st.comments.some(c => c.ep === e.id && c.slide === i+1 && !c.done)); });
     $("#prevEp").disabled = st.eps.indexOf(e) === 0; $("#nextEp").disabled = st.eps.indexOf(e) === st.eps.length - 1;
-    $("#cHead").textContent = st.scope === "slide" ? `${n+1}장 코멘트` : `${e.no}화 전체 코멘트`;
-    $("#sTitle").textContent = `${e.no}화 ${n+1}장에 코멘트`;
+    $("#cHead").textContent = st.scope === "slide" ? `${n+1}장 코멘트` : `${e.noLabel} 전체 코멘트`;
+    $("#sTitle").textContent = `${e.noLabel} ${n+1}장에 코멘트`;
     const box = $("#comments"); box.innerHTML = "";
     const cs = st.comments.filter(c => c.ep === e.id && (st.scope === "all" || c.slide === n+1)).sort((a, b) => (a.done - b.done) || (a.id - b.id));
     if (!cs.length) box.innerHTML = `<p class="hint">${st.scope === "slide" ? "이 장에는 아직 코멘트가 없어요." : "이 회차에는 아직 코멘트가 없어요."}</p>`;
