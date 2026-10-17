@@ -183,7 +183,7 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
 </div>
 
 <script>
-const CFG = { salt: "9gpY8eefWmlI5bQHplYqlQ==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017123032" };
+const CFG = { salt: "22d0kf/mHQKWjK7tDF/kew==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017123535" };
 (function(){
   const $ = s => document.querySelector(s);
   const PWKEY = "lia_review_pw";
@@ -294,7 +294,7 @@ const CFG = { salt: "9gpY8eefWmlI5bQHplYqlQ==", iter: 600000, api: "https://lia-
     e.slides.forEach((s, i) => {
       const d = document.createElement("div"); d.className = "slide";
       d.innerHTML = `<span class="ld">불러오는 중…</span><img alt=""><span class="cnt"></span>`;
-      const img = d.querySelector("img"); img.alt = `${i+1}장 ${s.label}`; fill(img, s.img);
+      const img = d.querySelector("img"); img.alt = `${i+1}장 ${s.label}`; img.dataset.hi = s.hi || ""; fill(img, s.img);
       d.querySelector(".cnt").textContent = `${i+1} / ${e.slides.length}`; car.appendChild(d);
       const dot = document.createElement("button"); dot.className = "dot"; dot.setAttribute("aria-label", `${i+1}장`); dot.onclick = () => goSlide(i); $("#dots").appendChild(dot);
     });
@@ -347,9 +347,13 @@ const CFG = { salt: "9gpY8eefWmlI5bQHplYqlQ==", iter: 600000, api: "https://lia-
     const mx = Math.max(0, (w - innerWidth) / 2), my = Math.max(0, (h - innerHeight) / 2);
     z.x = Math.min(mx, Math.max(-mx, z.x)); z.y = Math.min(my, Math.max(-my, z.y));
   }
-  function openLb(src, alt){ lbImg.src = src; lbImg.alt = alt || ""; resetZ(); lb.hidden = false; $("#fab").hidden = true; }
+  function openLb(src, alt, hi){
+    lbImg.src = src; lbImg.alt = alt || ""; resetZ(); lb.hidden = false; $("#fab").hidden = true;
+    const tip = lb.querySelector(".tip"); tip.textContent = hi ? "고화질 불러오는 중…" : "두 손가락으로 확대 · 두 번 톡톡 = 2.5배";
+    if (hi) imgURL(hi).then(u => { if (!lb.hidden && lbImg.src === src) lbImg.src = u; tip.textContent = "고화질 · 두 손가락으로 확대 · 두 번 톡톡 = 2.5배"; }).catch(() => { tip.textContent = "두 손가락으로 확대 · 두 번 톡톡 = 2.5배"; });
+  }
   function closeLb(){ lb.hidden = true; z.pts.clear(); if (st.cur && sheet.hidden) $("#fab").hidden = false; }
-  car.addEventListener("click", ev => { const img = ev.target.closest(".slide img"); if (img && img.src) openLb(img.src, img.alt); });
+  car.addEventListener("click", ev => { const img = ev.target.closest(".slide img"); if (img && img.src) openLb(img.src, img.alt, img.dataset.hi); });
   $("#lbClose").onclick = closeLb;
   const mid = () => { const p = [...z.pts.values()]; return { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) }; };
   lb.addEventListener("pointerdown", ev => {
