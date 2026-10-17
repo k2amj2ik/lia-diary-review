@@ -100,6 +100,12 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
 .sheet{position:fixed;z-index:31;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--sheet);border-radius:16px 16px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 -8px 24px rgba(0,0,0,.18);padding:14px max(16px,env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:10px;animation:up .2s ease-out}
 .sheet textarea{min-height:96px}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
+/* 그림 크게 보기: 이 화면 안에서만 두 손가락 확대 (사파리 기본 동작인 페이지 전체 확대는 막음) */
+.slide img{cursor:zoom-in}
+.lb{position:fixed;inset:0;z-index:50;background:rgba(10,6,8,.94);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+.lb img{position:absolute;left:50%;top:50%;max-width:100vw;max-height:100%;transform-origin:center center;will-change:transform;-webkit-user-drag:none}
+.lb .close{position:absolute;z-index:2;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));border:0;border-radius:99px;background:rgba(255,255,255,.9);color:#2b2226;font:inherit;font-weight:700;padding:8px 14px}
+.lb .tip{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;color:rgba(255,255,255,.8);font-size:.85rem}
 @media (prefers-reduced-motion:reduce){.sheet{animation:none}}
 </style></head><body>
 <div class="wrap">
@@ -160,6 +166,13 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
   </div>
 </div>
 
+<!-- 그림 크게 보기 -->
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="그림 크게 보기">
+  <img id="lbImg" alt="">
+  <button class="close" id="lbClose" type="button">닫기</button>
+  <div class="tip">두 손가락으로 확대 · 두 번 톡톡 = 2.5배</div>
+</div>
+
 <!-- 떠 있는 코멘트 버튼 + 아래에서 올라오는 입력창 -->
 <button class="fab" id="fab" hidden aria-haspopup="dialog">＋ 코멘트</button>
 <div class="backdrop" id="backdrop" hidden></div>
@@ -170,7 +183,7 @@ details summary{cursor:pointer;font-family:var(--display);font-size:1.05rem}
 </div>
 
 <script>
-const CFG = { salt: "cRoZ6Jidz94wUen+k2psvA==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017122725" };
+const CFG = { salt: "9gpY8eefWmlI5bQHplYqlQ==", iter: 600000, api: "https://lia-diary-review.k2amj2ik.workers.dev", ver: "20261017123032" };
 (function(){
   const $ = s => document.querySelector(s);
   const PWKEY = "lia_review_pw";
@@ -231,6 +244,7 @@ const CFG = { salt: "cRoZ6Jidz94wUen+k2psvA==", iter: 600000, api: "https://lia-
   window.addEventListener("hashchange", route);
   function route(){
     if (!st.eps.length) return;
+    if (!lb.hidden) closeLb();
     const m = location.hash.match(/^#(ep\d\d)$/);
     const ep = m && st.eps.find(e => e.id === m[1]);
     if (ep) { if (!st.cur || st.cur.id !== ep.id) { st.cur = ep; st.slide = 0; buildCarousel(); loadNote(); } $("#home").hidden = true; $("#detail").hidden = false; }
@@ -322,6 +336,63 @@ const CFG = { salt: "cRoZ6Jidz94wUen+k2psvA==", iter: 600000, api: "https://lia-
   $("#tSlide").onclick = () => { st.scope = "slide"; $("#tSlide").setAttribute("aria-pressed", true); $("#tAll").setAttribute("aria-pressed", false); renderDetail(); };
   $("#tAll").onclick = () => { st.scope = "all"; $("#tAll").setAttribute("aria-pressed", true); $("#tSlide").setAttribute("aria-pressed", false); renderDetail(); };
   function flash(sel, t){ $(sel).textContent = t; setTimeout(() => { if ($(sel).textContent === t) $(sel).textContent = ""; }, 3500); }
+
+  // ---------- 그림 크게 보기 (이 화면에서만 핀치 확대) ----------
+  const lb = $("#lb"), lbImg = $("#lbImg");
+  const z = { s: 1, x: 0, y: 0, pts: new Map(), start: null, lastTap: 0 };
+  function applyZ(){ lbImg.style.transform = `translate(-50%,-50%) translate(${z.x}px,${z.y}px) scale(${z.s})`; }
+  function resetZ(){ z.s = 1; z.x = 0; z.y = 0; applyZ(); }
+  function clampZ(){ // 그림이 화면 밖으로 너무 나가지 않게
+    const w = lbImg.offsetWidth * z.s, h = lbImg.offsetHeight * z.s;
+    const mx = Math.max(0, (w - innerWidth) / 2), my = Math.max(0, (h - innerHeight) / 2);
+    z.x = Math.min(mx, Math.max(-mx, z.x)); z.y = Math.min(my, Math.max(-my, z.y));
+  }
+  function openLb(src, alt){ lbImg.src = src; lbImg.alt = alt || ""; resetZ(); lb.hidden = false; $("#fab").hidden = true; }
+  function closeLb(){ lb.hidden = true; z.pts.clear(); if (st.cur && sheet.hidden) $("#fab").hidden = false; }
+  car.addEventListener("click", ev => { const img = ev.target.closest(".slide img"); if (img && img.src) openLb(img.src, img.alt); });
+  $("#lbClose").onclick = closeLb;
+  const mid = () => { const p = [...z.pts.values()]; return { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) }; };
+  lb.addEventListener("pointerdown", ev => {
+    if (ev.target.closest(".close")) return;
+    try { lb.setPointerCapture(ev.pointerId); } catch (_) {} z.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    z.start = { s: z.s, x: z.x, y: z.y, p: { x: ev.clientX, y: ev.clientY }, m: z.pts.size === 2 ? mid() : null, moved: false };
+  });
+  lb.addEventListener("pointermove", ev => {
+    if (!z.pts.has(ev.pointerId) || !z.start) return;
+    z.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const cx = innerWidth / 2, cy = innerHeight / 2;
+    if (z.pts.size === 2 && z.start.m) {           // 두 손가락: 손가락 사이 지점을 기준으로 확대
+      const m = mid(), k = Math.min(5, Math.max(1, z.start.s * m.d / z.start.m.d)) / z.start.s;
+      z.s = z.start.s * k;
+      z.x = m.x - cx - (z.start.m.x - cx - z.start.x) * k;
+      z.y = m.y - cy - (z.start.m.y - cy - z.start.y) * k;
+    } else if (z.pts.size === 1 && z.s > 1) {      // 한 손가락: 확대한 그림 끌기
+      z.x = z.start.x + ev.clientX - z.start.p.x; z.y = z.start.y + ev.clientY - z.start.p.y;
+    }
+    if (Math.hypot(ev.clientX - z.start.p.x, ev.clientY - z.start.p.y) > 8) z.start.moved = true;
+    clampZ(); applyZ();
+  });
+  function up(ev){
+    if (!z.pts.has(ev.pointerId)) return;
+    const wasOne = z.pts.size === 1, moved = z.start && z.start.moved;
+    z.pts.delete(ev.pointerId);
+    if (z.s < 1.02) resetZ();
+    if (z.pts.size === 1) { const p = [...z.pts.values()][0]; z.start = { s: z.s, x: z.x, y: z.y, p, m: null, moved: true }; return; }
+    if (!wasOne || moved) return;
+    const now = Date.now();
+    if (now - z.lastTap < 300) {                   // 두 번 톡톡: 2.5배 ↔ 원래 크기
+      if (z.s > 1) resetZ(); else { const k = 2.5; z.x = -(ev.clientX - innerWidth / 2) * (k - 1); z.y = -(ev.clientY - innerHeight / 2) * (k - 1); z.s = k; clampZ(); applyZ(); }
+      z.lastTap = 0;
+    } else {
+      z.lastTap = now;
+      if (ev.target === lb && z.s === 1) setTimeout(() => { if (z.lastTap === now) closeLb(); }, 320); // 그림 바깥 한 번 = 닫기
+    }
+  }
+  lb.addEventListener("pointerup", up); lb.addEventListener("pointercancel", up);
+  // 사파리: 그림 보기 화면이 열려 있을 때 페이지 전체 확대(제스처)를 막음
+  ["gesturestart", "gesturechange"].forEach(t => document.addEventListener(t, e => { if (!lb.hidden) e.preventDefault(); }, { passive: false }));
+  document.addEventListener("touchmove", e => { if (!lb.hidden) e.preventDefault(); }, { passive: false });
+  document.addEventListener("keydown", ev => { if (ev.key === "Escape" && !lb.hidden) closeLb(); });
 
   // ---------- 코멘트 입력창 (아래에서 올라오는 시트) ----------
   const sheet = $("#sheet"), dim = $("#backdrop"), vv = window.visualViewport;
